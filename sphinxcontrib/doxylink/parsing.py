@@ -3,13 +3,27 @@ from typing import Tuple
 from pyparsing import Word, Literal, nums, alphanums, OneOrMore, Optional,\
     SkipTo, ParseException, Group, Combine, delimitedList, quotedString,\
     nestedExpr, ParseResults, oneOf, ungroup, Keyword
+from pyparsing import Or
 
 # define punctuation - reuse of expressions helps packratting work better
-LPAR, RPAR, LBRACK, RBRACK, COMMA, EQ = map(Literal, "()[],=")
+LPAR, RPAR, LBRACK, RBRACK, LCBRACE, RCBRACE, COMMA, EQ = map(Literal, "()[]{},=")
 
 # Qualifier to go in front of type in the argument list (unsigned const int foo)
-qualifier = OneOrMore(Keyword('const') ^ Keyword('typename') ^ Keyword('struct') ^ Keyword('enum'))
+qualifier = OneOrMore(
+    Or(
+        [
+            Keyword('const class'), Keyword('const')
+        ]
+    ) \
+    ^ Keyword('typename') \
+    ^ Keyword('struct') \
+    ^ Keyword('enum')
+)
 qualifier = ungroup(qualifier.addParseAction(' '.join))
+
+
+def _strip_suffixes(text):
+    return text.replace(' override', '').replace(' final', '').replace(' ', '')
 
 
 def turn_parseresults_to_list(s, loc, toks):
@@ -34,6 +48,7 @@ angle_bracket_pair = nestedExpr(opener='<', closer='>').setParseAction(turn_pars
 # TODO Fix for nesting brackets
 parentheses_pair = LPAR + SkipTo(RPAR) + RPAR
 square_bracket_pair = LBRACK + SkipTo(RBRACK) + RBRACK
+curly_brace_pair = LCBRACE + SkipTo(RCBRACE) + RCBRACE
 
 # TODO I guess this should be a delimited list (by '::') of name and angle brackets
 nonfundamental_input_type = Combine(Word(alphanums + ':_') + Optional(angle_bracket_pair + Optional(Word(alphanums + ':_'))))
@@ -49,11 +64,25 @@ input_name = OneOrMore(Word(alphanums + '_') | angle_bracket_pair | parentheses_
 # Grab the '&', '*' or '**' type bit in (const QString & foo, int ** bar)
 pointer_or_reference = oneOf('* &')
 
+_word = Word(alphanums + "_")
+generic_accessor = _word + Literal("->") + _word
+
 # The '=QString()' or '=false' bit in (int foo = 4, bool bar = false)
-default_value = Literal('=') + OneOrMore(number | quotedString | input_type | parentheses_pair | angle_bracket_pair | square_bracket_pair | Word('|&^'))
+default_value = Literal('=') + OneOrMore(
+    generic_accessor
+    | number
+    | quotedString
+    | input_type
+    | parentheses_pair
+    | angle_bracket_pair
+    | square_bracket_pair
+    | curly_brace_pair
+    | Word('|&^')
+)
 
 # A combination building up the interesting bit -- the argument type, e.g. 'const QString &', 'int' or 'char*'
 argument_type = Optional(qualifier, default='')("qualifier") + \
+                Optional("class") + \
                 input_type('input_type').setParseAction(' '.join) + \
                 Optional(pointer_or_reference, default='')("pointer_or_reference1") + \
                 Optional('const')('const_pointer_or_reference') + \
@@ -89,11 +118,16 @@ def normalise(symbol):
 
     # This is a very common signature so we'll make a special case for it. It requires no parsing anyway
     if arglist_input_string.startswith('()'):
-        arglist_input_string_no_spaces = arglist_input_string.replace(' override', '').replace(' final', '').replace(' ', '')
+        arglist_input_string_no_spaces = _strip_suffixes(arglist_input_string)
         if arglist_input_string_no_spaces in ('()', '()=0', '()=default'):
             return function_name, '()'
         elif arglist_input_string_no_spaces in ('()const', '()const=0'):
             return function_name, '() const'
+        elif arglist_input_string_no_spaces == '()constnoexcept':
+            return function_name, '() const noexcept'
+
+    if arglist_input_string.startswith('(...)'):
+        return function_name, '(...)'
 
     # By now we're left with something like "(blah, blah)", "(blah, blah) const" or "(blah, blah) const =0"
     try:

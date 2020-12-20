@@ -119,6 +119,41 @@ keywords_almost_in_typenames = [
 ]
 
 
+miscellaneous = [
+    (
+        "GfMatrix2f::GfMatrix2f(const class GfMatrix2d &m)",
+        ("GfMatrix2f::GfMatrix2f", "(const class GfMatrix2d&)"),
+    ),
+    (
+        "GfMatrix2f::GfMatrix2f(const GfMatrix2d &m)",
+        ("GfMatrix2f::GfMatrix2f", "(const GfMatrix2d&)"),
+    ),
+    (
+        "Thing::GetStuff(...)",
+        ("Thing::GetStuff", "(...)"),
+    ),
+    (
+        "GfVec2d::GfVec2d(class GfVec2h const &other)",
+        ("GfVec2d::GfVec2d", "(GfVec2h const &)"),  # Note: Not sure if it should be "(class GfVec2h"
+    ),
+    (
+        "UsdPrim::GetAuthoredProperties(const PropertyPredicateFunc &predicate={})",
+        ("UsdPrim::GetAuthoredProperties", "(const PropertyPredicateFunc&)"),
+    ),
+    (
+        "UsdShadeMaterialBindingAPI::GetCollectionBindingRel(const TfToken &bindingName, const TfToken &materialPurpose=UsdShadeTokens->allPurpose) const",
+        (
+            "UsdShadeMaterialBindingAPI::GetCollectionBindingRel", "(const TfToken&, const TfToken&) const"
+        ),
+    ),
+    (
+        "TfPointerAndBits::BitsAs() const noexcept",
+        ("TfPointerAndBits::BitsAs", "() const noexcept"),
+    ),
+    ("Blah::Blah(Foo &&blah)", ("Blah::Blah", "(Foo&&)")),
+]
+
+
 @pytest.mark.parametrize('test_input, expected', functions)
 def test_split_function(test_input, expected):
     assert parsing.normalise(test_input) == expected
@@ -151,6 +186,11 @@ def test_numbers_for_defaults(test_input, expected):
 
 @pytest.mark.parametrize('test_input, expected', flags_in_defaults)
 def test_flags_in_defaults(test_input, expected):
+    assert parsing.normalise(test_input) == expected
+
+
+@pytest.mark.parametrize('test_input, expected', miscellaneous)
+def test_miscellaneous(test_input, expected):
     assert parsing.normalise(test_input) == expected
 
 
