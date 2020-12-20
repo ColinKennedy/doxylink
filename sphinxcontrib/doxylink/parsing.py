@@ -66,7 +66,7 @@ argument = Group(argument_type('argument_type') + Optional(input_name) + Optiona
 arglist = LPAR + delimitedList(argument)('arg_list') + Optional(COMMA + '...')('var_args') + RPAR
 
 
-def normalise(symbol: str) -> Tuple[str, str]:
+def normalise(symbol):
     """
     Takes a c++ symbol or function and splits it into symbol and a normalised argument list.
 

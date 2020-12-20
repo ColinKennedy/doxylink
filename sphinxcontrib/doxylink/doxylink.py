@@ -2,13 +2,13 @@
 
 import os
 import xml.etree.ElementTree as ET
-import urllib.parse
 from collections import namedtuple
 
 from docutils import nodes, utils
 from sphinx.util.nodes import split_explicit_title
 from sphinx.util.console import bold, standout
 from sphinx import __version__ as sphinx_version
+from six.moves.urllib import parse
 
 if sphinx_version >= '1.6.0':
     from sphinx.util.logging import getLogger
@@ -60,7 +60,7 @@ class FunctionList:
         self.kind = 'function_list'
         self._arglist = {}  # type: MutableMapping[str, str]
 
-    def __getitem__(self, arglist: str) -> Entry:
+    def __getitem__(self, arglist):
         # If the user has requested a specific function through specifying an arglist then get the right anchor
         if arglist:
             try:
@@ -74,16 +74,16 @@ class FunctionList:
 
         return Entry(kind='function', file=filename)
 
-    def add_overload(self, arglist: str, file: str) -> None:
+    def add_overload(self, arglist, file):
         self._arglist[arglist] = file
 
 
 class SymbolMap:
     """A SymbolMap maps symbols to Entries or FunctionLists"""
-    def __init__(self, xml_doc: ET.ElementTree) -> None:
+    def __init__(self, xml_doc):
         self._mapping = parse_tag_file(xml_doc)
 
-    def _get_symbol_match(self, symbol: str) -> str:
+    def _get_symbol_match(self, symbol):
         if self._mapping.get(symbol):
             return symbol
 
@@ -117,7 +117,7 @@ class SymbolMap:
         # TODO Offer fuzzy suggestion
         raise LookupError('Could not find a match')
 
-    def __getitem__(self, item: str) -> Entry:
+    def __getitem__(self, item):
         symbol, normalised_arglist = normalise(item)
 
         matched_symbol = self._get_symbol_match(symbol)
@@ -129,7 +129,7 @@ class SymbolMap:
         return entry
 
 
-def parse_tag_file(doc: ET.ElementTree) -> dict:
+def parse_tag_file(doc):
     """
     Takes in an XML tree from a Doxygen tag file and returns a dictionary that looks something like:
 
@@ -200,7 +200,7 @@ def parse_tag_file(doc: ET.ElementTree) -> dict:
     return mapping
 
 
-def match_piecewise(candidates: set, symbol: str, sep: str='::') -> set:
+def match_piecewise(candidates, symbol, sep='::'):
     """
     Match the requested symbol reverse piecewise (split on ``::``) against the candidates.
     This allows you to under-specify the base namespace so that ``"MyClass"`` can match ``my_namespace::MyClass``
@@ -295,7 +295,7 @@ def create_role(app, tag_filename, rootdir):
 
         # If it's an absolute path then the link will work regardless of the document directory
         # Also check if it is a URL (i.e. it has a 'scheme' like 'http' or 'file')
-        if os.path.isabs(rootdir) or urllib.parse.urlparse(rootdir).scheme:
+        if os.path.isabs(rootdir) or parse.urlparse(rootdir).scheme:
             full_url = join(rootdir, url.file)
         # But otherwise we need to add the relative path of the current document to the root source directory to the link
         else:

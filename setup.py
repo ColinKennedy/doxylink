@@ -34,6 +34,6 @@ setup(
     ],
     packages=find_packages(exclude=['doc', 'examples', 'html', 'tests']),
     install_requires=requires,
-    python_requires='~=3.4',
+    python_requires='>=2.7,<3.7',
     namespace_packages=['sphinxcontrib'],
 )
