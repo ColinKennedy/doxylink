@@ -225,4 +225,15 @@ autodoc_default_flags = ['members']
 
 
 def setup(app):
-    app.add_description_unit('confval', 'confval', 'pair: %s; configuration value')
+    try:
+        # Used by older Sphinx versions.
+        #
+        # Reference: https://github.com/sphinx-doc/sphinx/issues/6174#issuecomment-472130183
+        # Reference: https://github.com/sphinx-doc/sphinx/blob/8d0d75fea78b265b7c578307f237d3cefa096a6c/sphinx/application.py#L830-L831
+        #
+        caller = app.add_description_unit
+    except AttributeError:
+        # Newer Sphinx versions prefer this
+        caller = app.add_object_type
+
+    caller('confval', 'confval', 'pair: %s; configuration value')
