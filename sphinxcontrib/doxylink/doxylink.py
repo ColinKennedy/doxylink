@@ -16,6 +16,11 @@ if sphinx_version >= '1.6.0':
 from ..doxylink import __version__
 from .parsing import normalise, ParseException
 
+try:
+    _NotFoundError = FileNotFoundError  # Python 3+
+except NameError:
+    _NotFoundError = IOError  # Python 2.7
+
 Entry = namedtuple('Entry', ['kind', 'file'])
 
 
@@ -269,7 +274,7 @@ def create_role(app, tag_filename, rootdir):
         else:
             # The cache is up to date
             report_info(app.env, 'Sub-cache is up-to-date')
-    except FileNotFoundError:
+    except _NotFoundError:
         tag_file = None
         report_warning(app.env, standout('Could not find tag file %s. Make sure your `doxylink` config variable is set correctly.' % tag_filename))
 
